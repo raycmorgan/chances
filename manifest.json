@@ -1,0 +1,21 @@
+{
+  "manifest_version": 2,
+
+  "name": "Chances",
+  "description": "Turn your Github issues into opprotunities!",
+  "version": "1.0",
+
+  "permissions": [
+    "https://api.github.com/*"
+  ],
+
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*/*/issues*"],
+      "css": ["css/bundle.css"],
+      "js": ["js/bundle.js"]
+    }
+  ],
+
+  "browser_action": {}
+}
