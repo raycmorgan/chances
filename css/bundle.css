@@ -1,4 +1,8 @@
 .ch-error {
-  border:1px solid red;
-  padding:10px;
+  border: 1px solid red;
+  padding: 10px;
+}
+
+#issues_list {
+  margin-top: 50px;
 }

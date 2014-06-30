@@ -1,6 +1,8 @@
 /** @jsx React.DOM */
 'use strict';
 
+alert('hi')
+
 var React = require('react');
 var $ = require('jquery');
 var _ = require('underscore');
@@ -29,10 +31,8 @@ var IssueStore = (function () {
                   .issues
                   .stream();
 
-    stream.on('data', function (issue) {
-      issues.push(issue);
-      emitChange();
-    });
+    stream.on('data', (issue) => issues.push(issue));
+    stream.on('endChunk', emitChange);
     stream.on('end', emitChange);
   }
 
@@ -208,5 +208,3 @@ var App = React.createClass({
 if (document.getElementById('ch-menu')) {
   React.renderComponent(<App />, document.getElementById('ch-menu'));
 }
-
-$('#issues_list').css({'margin-top': 50});

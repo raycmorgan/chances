@@ -36,11 +36,13 @@ function Github(token) {
 
         // should optimize this by NOT making extra page req
         if (data.length) {
+          e.emit('startChunk');
           _.each(data, function (d) {
             if (!cancelled) {
               e.emit('data', d);
             }
           });
+          e.emit('endChunk');
 
           if (data.length < opts['per_page']) {
             return e.emit('end');

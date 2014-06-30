@@ -7,6 +7,8 @@
 * [ ] Filter by extended attributes
 * [ ] Add UI to add extended attributes to issue view
 * [ ] Sync issues locally
+* [ ] Async validate token
+* [ ] Make initial load appear faster (less ajax, more trickery)
 
 ## Wish list
 
