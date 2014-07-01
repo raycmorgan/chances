@@ -79,14 +79,23 @@ function Github(token) {
       get: () => priv.get('user'),
     },
 
+    labels: {
+      get: (data) => priv.get('labels', data)
+    },
+
     repos: function (repoTuple) {
       var basePath = 'repos/' + repoTuple + '/';
 
       return {
         issues: {
           get: (data) => priv.get(basePath + 'issues', data),
-          stream: (data) => priv.stream(basePath + 'issues', data)
-        }
+          stream: (data) => priv.stream(basePath + 'issues', data),
+        },
+
+        labels: {
+          get: (data) => priv.get(basePath + 'labels', data),
+          stream: (data) => priv.stream(basePath + 'labels', data),
+        },
       };
     }
   };

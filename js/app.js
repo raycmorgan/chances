@@ -9,6 +9,7 @@ var helpers = require('./helpers');
 var Github = require('./github');
 var AuthenticationStore = require('./stores/authentication_store');
 var IssueStore = require('./stores/issue_store');
+var LabelStore = require('./stores/label_store');
 
 $('#issues_list').before('<div id="ch-menu" />');
 
@@ -115,32 +116,85 @@ var IssueList = React.createClass({
   }
 });
 
+var LabelFilterMenu = React.createClass({
+  getInitialState: function () {
+    return {
+      labelGroups: LabelStore.getGroupedLabels(),
+      tags: LabelStore.getNonGroupedLabels()
+    };
+  },
+
+  componentDidMount: function () {
+    LabelStore.addChangeListener(function () {
+      this.setState({
+        labelGroups: LabelStore.getGroupedLabels(),
+        tags: LabelStore.getNonGroupedLabels()
+      });
+    }.bind(this));
+  },
+
+  handleLabelClick: function (e) {
+    e.preventDefault();
+    var name = e.target.id;
+    var selected = !LabelStore.isLabelSelected(name);
+
+    if (selected) {
+      LabelStore.selectLabel(name);
+    } else {
+      LabelStore.deselectLabel(name);
+    }
+  },
+
+  renderGroupedLabel: function (label) {
+    var name = _.rest(label.name.split(':')).join(':');
+    var className = LabelStore.isLabelSelected(label.name) ? 'ch-selected' : '';
+    return <li className={className} key={name}><a href="" onClick={this.handleLabelClick} id={label.name}>{name}</a></li>;
+  },
+
+  renderLabelGroup: function (labels, name) {
+    return <div>
+      <h5>{name}</h5>
+      <ul className="ch-label-group">
+        {_.map(labels, this.renderGroupedLabel)}
+      </ul>
+    </div>;
+  },
+
+  render: function () {
+    return <div>
+      {_.map(this.state.labelGroups, this.renderLabelGroup)}
+    </div>;
+  }
+});
+
 var IssueFilterMenu = React.createClass({
   getInitialState: function () {
     return {
-      includePullRequests: IssueStore.getFilter('includePullRequests')
+      includePullRequests: IssueStore.includePullRequests()
     };
   },
 
   componentDidMount: function () {
     IssueStore.addChangeListener(function () {
       this.setState({
-        includePullRequests: IssueStore.getFilter('includePullRequests')
+        includePullRequests: IssueStore.includePullRequests()
       });
     }.bind(this));
   },
 
   handleIncludePRChange: function (e) {
     e.preventDefault();
-    IssueStore.setFilter('includePullRequests', !this.state.includePullRequests);
+    IssueStore.setIncludePullRequests(!this.state.includePullRequests);
   },
 
   render: function () {
+    console.log(this.state.includePullRequests);
     var ipr = this.state.includePullRequests ? 'ch-selected ch-white' : '';
     ipr += ' type-icon octicon ch-selectable octicon-git-pull-request ch-no-underline';
 
     return <ul className="ch-menu">
       <li><a className={ipr} href="" onClick={this.handleIncludePRChange}></a></li>
+      <li><LabelFilterMenu /></li>
     </ul>;
   }
 });

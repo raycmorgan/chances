@@ -3,7 +3,7 @@
 * [ ] Fetch labels
 * [x] Fetch all open issues
 * [x] List all open issues
-* [ ] Filter all open issues by built-in properties
+* [ ] Filter all open issues
 * [ ] Filter by extended attributes
 * [ ] Add UI to add extended attributes to issue view
 * [ ] Sync issues locally

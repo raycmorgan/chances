@@ -3,20 +3,29 @@
 
 var Github = require('../github');
 var AuthenticationStore = require('./authentication_store');
+var LabelStore = require('./label_store');
 var helpers = require('../helpers');
 var _ = require('underscore');
+var query = require('../query');
+var sessionStore = require('./session_store')('IssueStore.' + helpers.repoTuple());
 
 var issues = [];
-var selectedIssues = [];
 var changeListeners = [];
 
-var filters = {};
+var defaultFilters = {
+  includePullRequests: false
+};
 
 AuthenticationStore.addChangeListener(function () {
   if (AuthenticationStore.isTokenValid()) {
     syncIssues();
   }
 });
+
+
+// This is TERRIBAD. Need to move to a dispatcher/event model
+// and only change when labels are selected, etc.
+LabelStore.addChangeListener(emitChange);
 
 function syncIssues() {
   issues = [];
@@ -35,6 +44,28 @@ function emitChange() {
   _.each(changeListeners, fn => fn());
 }
 
+function currentQuery() {
+  var q = {};
+  var filters = sessionStore.fetch('filters', defaultFilters);
+
+  if (!filters.includePullRequests) {
+    q['pull_request'] = {$exists: false};
+  }
+
+  var groupedLabels = LabelStore.getGroupedLabels();
+
+  _.map(groupedLabels, function (labels, groupName) {
+    labels = _.map(labels, (l) => l['name']);
+    var selected = _.filter(labels, LabelStore.isLabelSelected);
+
+    if (selected.length) {
+      
+    }
+  });
+
+  return q;
+}
+
 module.exports = {
   addChangeListener: (fn) => changeListeners.push(fn),
   removeChangeListener: function (fn) {
@@ -42,32 +73,43 @@ module.exports = {
   },
 
   getIssues: function () {
-    console.log(JSON.stringify(issues[0]));
-    if (filters.includePullRequests) {
-      return issues;
-    } else {
-      return _.filter(issues, (i) => !i['pull_request']);
-    }
+    return query.filter(issues, currentQuery());
   },
 
-  setFilter: function (key, value) {
-    console.log('Setting filter %s to %s', key, value);
-    filters[key] = value;
+  //
+
+  setIncludePullRequests: function (v) {
+    sessionStore.update('filters', function (filters) {
+      filters['includePullRequests'] = v;
+      return filters;
+    }, defaultFilters);
+
     emitChange();
   },
-  getFilter: (key) => filters[key],
+
+  includePullRequests: function () {
+    return sessionStore.fetch('filters', defaultFilters)['includePullRequests'];
+  },
+
+  //
 
   selectIssue: function (id) {
-    selectedIssues = selectedIssues.concat(id);
+    sessionStore.update('selected', function (selected) {
+      return selected.concat(id);
+    }, []);
+
     emitChange();
   },
 
   unselectIssue: function (id) {
-    selectedIssues = _.reject(selectedIssues, (i) => i == id);
+    sessionStore.update('selected', function (selected) {
+      return _.reject(selected, (i) => i == id);
+    }, []);
+    
     emitChange();
   },
 
   isIssueSelected: function (id) {
-    return _.contains(selectedIssues, id);
+    return _.contains(sessionStore.fetch('selected'), id);
   }
 };
