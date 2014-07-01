@@ -1,8 +1,6 @@
 /** @jsx React.DOM */
 'use strict';
 
-alert('hi')
-
 var React = require('react');
 var $ = require('jquery');
 var _ = require('underscore');
@@ -10,48 +8,9 @@ var reqwest = require('reqwest');
 var helpers = require('./helpers');
 var Github = require('./github');
 var AuthenticationStore = require('./stores/authentication_store');
+var IssueStore = require('./stores/issue_store');
 
 $('#issues_list').before('<div id="ch-menu" />');
-
-var IssueStore = (function () {
-  var issues = [];
-  var changeListeners = [];
-
-  AuthenticationStore.addChangeListener(function () {
-    if (AuthenticationStore.isTokenValid) {
-      syncIssues();
-    }
-  });
-
-  function syncIssues() {
-    issues = [];
-
-    var stream = Github(AuthenticationStore.getToken)
-                  .repos(helpers.repoTuple())
-                  .issues
-                  .stream();
-
-    stream.on('data', (issue) => issues.push(issue));
-    stream.on('endChunk', emitChange);
-    stream.on('end', emitChange);
-  }
-
-  function emitChange() {
-    _.each(changeListeners, fn => fn());
-  }
-
-  return {
-    addChangeListener: (fn) => changeListeners.push(fn),
-    removeChangeListener: function (fn) {
-      changeListeners = _.reject(changeListeners, (f) => fn == f);
-    },
-
-    getIssues: function () {
-      return _.filter(issues, (i) => !i['pull_request']);
-    }
-  }
-}());
-
 
 var AuthView = React.createClass({
   getInitialState: function () {
@@ -81,12 +40,21 @@ var AuthView = React.createClass({
 
 var IssueListItem = React.createClass({
   shouldComponentUpdate: function (nextProps) {
-    return this.props.issue['updated_at'] != nextProps.issue['updated_at'];
+    return !(this.props.issue['updated_at'] == nextProps.issue['updated_at']
+              && this.props.selected == nextProps.selected);
+  },
+
+  handleSelect: function (e) {
+    if (this.props.selected) {
+      IssueStore.unselectIssue(this.props.issue.id);
+    } else {
+      IssueStore.selectIssue(this.props.issue.id);
+    }
   },
 
   renderLabel: function (label) {
-    var className = "label labelstyle-" + label.color + " lighter";
-    return <span key={label.name} className={className}>{label.name}</span>;
+    var className = "ch-label label labelstyle-" + label.color + " lighter";
+    return <span><span key={label.name} className={className}>{label.name}</span> </span>;
   },
 
   render: function () {
@@ -118,27 +86,61 @@ var IssueListItem = React.createClass({
         console.warn('Unknown issue state: %s', issue.state);
     }
 
-    console.log(issue);
+    // console.log(issue);
 
-    return <li className="list-group-item issue-list-item">
+    return <li className="list-group-item issue-list-item selectable">
+      <input className="list-group-item-check js-issues-list-checkbox select-toggle-check"
+             type="checkbox"
+             checked={this.props.selected}
+             onChange={this.handleSelect} />
+
       <h4 className="list-group-item-name">
         <span className={iconClass}></span>
         <a href={issue['html_url']}>{issue.title}</a>
         <span className="labels">{_.map(issue.labels, this.renderLabel)}</span>
       </h4>
-      {issue.state}
     </li>;
   },
 });
 
 var IssueList = React.createClass({
   renderListItem: function (issue) {
-    return <IssueListItem key={issue.id} issue={issue} />
+    return <IssueListItem key={issue.id} issue={issue} selected={IssueStore.isIssueSelected(issue.id)} />
   },
 
   render: function () {
     return <ul className="list-group issue-list-group">
       {_.map(this.props.issues, this.renderListItem)}
+    </ul>;
+  }
+});
+
+var IssueFilterMenu = React.createClass({
+  getInitialState: function () {
+    return {
+      includePullRequests: IssueStore.getFilter('includePullRequests')
+    };
+  },
+
+  componentDidMount: function () {
+    IssueStore.addChangeListener(function () {
+      this.setState({
+        includePullRequests: IssueStore.getFilter('includePullRequests')
+      });
+    }.bind(this));
+  },
+
+  handleIncludePRChange: function (e) {
+    e.preventDefault();
+    IssueStore.setFilter('includePullRequests', !this.state.includePullRequests);
+  },
+
+  render: function () {
+    var ipr = this.state.includePullRequests ? 'ch-selected ch-white' : '';
+    ipr += ' type-icon octicon ch-selectable octicon-git-pull-request ch-no-underline';
+
+    return <ul className="ch-menu">
+      <li><a className={ipr} href="" onClick={this.handleIncludePRChange}></a></li>
     </ul>;
   }
 });
@@ -185,9 +187,10 @@ var App = React.createClass({
       } else {
         if (this.state.isTokenValid) {
           return <div>
-            <h3>You are authenticated!</h3>
-            <p><a href="" onClick={this.handleSignOut}>Sign out of chances</a></p>
+            <IssueFilterMenu />
             <IssueList issues={this.state.issues} />
+            
+            <p><a href="" onClick={this.handleSignOut}>Sign out of chances</a></p>
           </div>;
         } else {
           return <div>

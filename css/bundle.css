@@ -6,3 +6,37 @@
 #issues_list {
   margin-top: 50px;
 }
+
+.ch-selectable {
+  border: 1px solid #aaa;
+  border-radius: 2px;
+  padding: 3px 5px;
+  display: inline-block;
+}
+
+.ch-selected {
+  background: #4183c4;
+  color: #fff;
+}
+
+.ch-white {
+  color: #fff;
+}
+
+.ch-no-underline {
+  text-decoration: none;
+}
+
+.ch-no-underline:hover {
+  text-decoration: none;
+}
+
+.ch-menu {
+  padding:10px 0;
+}
+
+.ch-menu li {
+  list-style-type: none;
+  display: inline-block;
+  margin-right:10px;
+}

@@ -36,7 +36,7 @@ function Github(token) {
 
         // should optimize this by NOT making extra page req
         if (data.length) {
-          e.emit('startChunk');
+          e.emit('startChunk', data.length);
           _.each(data, function (d) {
             if (!cancelled) {
               e.emit('data', d);
@@ -48,7 +48,7 @@ function Github(token) {
             return e.emit('end');
           } else if (!cancelled) {
             opts['page']++;
-            priv.get(path, opts).then(handleData, handleError);
+            fetchPage();
           }
         } else {
           e.emit('end');
@@ -60,7 +60,10 @@ function Github(token) {
         e.emit('end');
       }
 
-      priv.get(path, opts).then(handleData, handleError);
+      function fetchPage() {
+        priv.get(path, opts).then(handleData, handleError);
+      }
+      fetchPage();
 
       return e;
     },
