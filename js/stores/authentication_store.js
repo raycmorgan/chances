@@ -4,11 +4,12 @@
 var React = require('react');
 var _ = require('underscore');
 var Github = require('../github');
+var AppDispatcher = require('../app_dispatcher');
 
 // -- Private store variables
 
 var token = localStorage['ch-token'];
-var validToken = false;
+var validToken = true;
 var validatingToken = false;
 var changeListeners = [];
 

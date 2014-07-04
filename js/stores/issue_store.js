@@ -9,7 +9,6 @@ var _ = require('underscore');
 var query = require('../query');
 var sessionStore = require('./session_store')('IssueStore.' + helpers.repoTuple());
 
-var issues = [];
 var changeListeners = [];
 
 var defaultFilters = {
@@ -28,7 +27,7 @@ AuthenticationStore.addChangeListener(function () {
 LabelStore.addChangeListener(emitChange);
 
 function syncIssues() {
-  issues = [];
+  var issues = [];
 
   var stream = Github(AuthenticationStore.getToken())
                 .repos(helpers.repoTuple())
@@ -37,7 +36,13 @@ function syncIssues() {
 
   stream.on('data', (issue) => issues.push(issue));
   stream.on('endChunk', emitChange);
-  stream.on('end', emitChange);
+  stream.on('end', function () {
+    sessionStore.update('issues', function () {
+      return issues;
+    });
+
+    emitChange();
+  });
 }
 
 function emitChange() {
@@ -45,7 +50,9 @@ function emitChange() {
 }
 
 function currentQuery() {
-  var q = {};
+  var q = {
+    '$and': []
+  };
   var filters = sessionStore.fetch('filters', defaultFilters);
 
   if (!filters.includePullRequests) {
@@ -54,16 +61,89 @@ function currentQuery() {
 
   var groupedLabels = LabelStore.getGroupedLabels();
 
-  _.map(groupedLabels, function (labels, groupName) {
+  _.each(groupedLabels, function (labels, groupName) {
     labels = _.map(labels, (l) => l['name']);
     var selected = _.filter(labels, LabelStore.isLabelSelected);
 
     if (selected.length) {
-      
+      q['$and'].push({labels: {name: {'$in': selected}}});
+    }
+  });
+
+  _.each(LabelStore.getNonGroupedLabels(), function (label) {
+    if (LabelStore.isLabelSelected(label.name)) {
+      q['$and'].push({labels: {name: label.name}});
     }
   });
 
   return q;
+}
+
+function remoteToLocal(issue) {
+  var i = {};
+
+  function copyKeys(o, o2, keys) {
+    _.each(keys, function (k) {
+      o2[k] = o[k];
+    });
+  }
+
+  function toLocalUser(user) {
+    if (!user) {
+      return null;
+    }
+
+    return {
+      'id': user['id'],
+      'login': user['login'],
+      'avatar_url': user['avatar_url'],
+      'type': user['type'],
+      'url': user['url']
+    };
+  }
+
+  copyKeys(issue, i, [
+    'id',
+    'number',
+    'title',
+    'body',
+    'state',
+    'url',
+    'comments',
+    'created_at',
+    'updated_at',
+    'closed_at',
+  ]);
+  
+  i['labels'] = _.map(issue['labels'], function (l) {
+    return {name: l.name, color: l.color};
+  });
+
+  i['user'] = toLocalUser(issues['user']);
+
+  var milestone = issues['milestone'];
+  if (milestone) {
+    var m = {};
+
+    copyKeys(milestone, m, [
+      'id',
+      'number',
+      'title',
+      'open_issues',
+      'closed_issues',
+      'created_at',
+      'updated_at',
+      'description',
+      'due_on',
+      'state',
+      'url'
+    ]);
+
+    m['creator'] = toLocalUser(milestone['creator']);
+    i['milestone'] = m;
+  }
+
+  return i;
 }
 
 module.exports = {
@@ -73,6 +153,8 @@ module.exports = {
   },
 
   getIssues: function () {
+    var issues = sessionStore.fetch('issues', []);
+    // console.log(issues);
     return query.filter(issues, currentQuery());
   },
 
@@ -97,6 +179,9 @@ module.exports = {
     sessionStore.update('selected', function (selected) {
       return selected.concat(id);
     }, []);
+
+    var issues = sessionStore.fetch('issues', []);
+    console.log(_.find(issues, (i) => i.id == id));
 
     emitChange();
   },
