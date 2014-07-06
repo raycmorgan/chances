@@ -45,4 +45,20 @@
   margin-right:10px;
 }
 
+.issue-list-item {
+  overflow: hidden;
+}
+
+.issue-list-item img {
+  max-width: 75%;
+}
+
+.issue-list-item code {
+  overflow: scroll;
+  max-width: 100%;
+  display: block;
+  border: 1px solid #ddd;
+  padding: 10px;
+}
+
 

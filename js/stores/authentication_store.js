@@ -4,7 +4,7 @@
 var React = require('react');
 var _ = require('underscore');
 var Github = require('../github');
-var AppDispatcher = require('../app_dispatcher');
+var Dispatcher = require('../dispatchers/app_dispatcher');
 
 // -- Private store variables
 
@@ -26,6 +26,11 @@ function validateToken() {
     return function () {
       validToken = isValid;
       validatingToken = false;
+
+      Dispatcher.handleStoreAction('token.valid', {
+        isValid: isValid
+      });
+
       emitChange();
     }
   }
@@ -39,6 +44,37 @@ function validateToken() {
 
 validateToken();
 
+// -- Event Handling
+
+var handlers = {
+  'authenticate': function (action) {
+    setToken(event.action);
+  }
+};
+
+var dispatchID = Dispatcher.register(function (event) {
+  if (typeof handlers[event.type] === 'function') {
+    handlers[event.type](event.action);
+  }
+
+  return true;
+});
+
+function setToken(newToken) {
+  token = newToken;
+
+  if (token) {
+    localStorage['ch-token'] = token;
+    validateToken();
+  } else {
+    validToken = false;
+    delete localStorage['ch-token'];
+  }
+
+  emitChange();
+  return true;
+}
+
 // -- Public interface
 
 module.exports = {
@@ -47,21 +83,8 @@ module.exports = {
     changeListeners = _.reject(changeListeners, (f) => fn == f);
   },
 
+  getDispatchID: () => dispatchID,
   getToken: () => token,
-  setToken: function (newToken) {
-    token = newToken;
-
-    if (token) {
-      localStorage['ch-token'] = token;
-      validateToken();
-    } else {
-      validToken = false;
-      delete localStorage['ch-token'];
-    }
-    
-    emitChange();
-  },
-
   isValidatingToken: () => validatingToken,
   isTokenValid: () => validToken
 }

@@ -3,6 +3,7 @@
 
 var React = require('react');
 var _ = require('underscore');
+var Dispatcher = require('../dispatchers/app_dispatcher');
 
 // Stores
 var AuthenticationStore = require('../stores/authentication_store');
@@ -44,7 +45,7 @@ module.exports = React.createClass({
 
   handleSignOut: function (e) {
     e.preventDefault();
-    AuthenticationStore.setToken(null);
+    Dispatcher.handleViewAction('authenticate', null);
   },
 
   render: function () {

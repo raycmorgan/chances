@@ -1,6 +1,7 @@
 /** @jsx React.DOM */
 'use strict';
 
+var Dispatcher = require('../dispatchers/app_dispatcher');
 var Github = require('../github');
 var AuthenticationStore = require('./authentication_store');
 var LabelStore = require('./label_store');
@@ -15,16 +16,11 @@ var defaultFilters = {
   includePullRequests: false
 };
 
-AuthenticationStore.addChangeListener(function () {
-  if (AuthenticationStore.isTokenValid()) {
-    syncIssues();
-  }
-});
-
-
 // This is TERRIBAD. Need to move to a dispatcher/event model
 // and only change when labels are selected, etc.
 LabelStore.addChangeListener(emitChange);
+
+sessionStore.update('issues', () => []);
 
 function syncIssues() {
   var issues = [];
@@ -146,7 +142,34 @@ function remoteToLocal(issue) {
   return i;
 }
 
+
+// -- Event Handling
+
+var handlers = {
+  'token.valid': function (action) {
+    Dispatcher.waitFor([
+      AuthenticationStore.getDispatchID()
+    ], function () {
+      if (AuthenticationStore.isTokenValid()) {
+        syncIssues();
+      }
+    });
+  }
+}
+
+var dispatchID = Dispatcher.register(function (event) {
+  if (typeof handlers[event.type] === 'function') {
+    handlers[event.type](event.action);
+  }
+
+  return true;
+});
+
+// --
+
 module.exports = {
+  getDispatchID: () => dispatchID,
+
   addChangeListener: (fn) => changeListeners.push(fn),
   removeChangeListener: function (fn) {
     changeListeners = _.reject(changeListeners, (f) => fn == f);
