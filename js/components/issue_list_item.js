@@ -69,8 +69,8 @@ module.exports = React.createClass({
         <a href={issue['html_url']}>{issue.title}</a>
         <span className="labels">{_.map(issue.labels, this.renderLabel)}</span>
       </h4>
-
-      <div className="three-fourths" dangerouslySetInnerHTML={{__html: markdown.toHTML(issue.body)}} />
     </li>;
+
+    // <div className="three-fourths" dangerouslySetInnerHTML={{__html: markdown.toHTML(issue.body)}} />
   },
 });

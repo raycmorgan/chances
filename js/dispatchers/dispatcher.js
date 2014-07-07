@@ -23,6 +23,7 @@
 
 var Promise = require('es6-promise').Promise;
 var merge = require('react/lib/merge');
+var logger = require('../logger')('dispatcher');
 
 var _callbacks = [];
 var _promises = [];
@@ -67,6 +68,7 @@ Dispatcher.prototype = merge(Dispatcher.prototype, {
    * @param  {object} payload The data from the action.
    */
   dispatch: function(payload) {
+    logger.info('Dispatching:', payload);
     _callbacks.forEach(function(callback) {
       _addPromise(callback, payload);
     });

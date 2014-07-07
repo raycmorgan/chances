@@ -47,9 +47,7 @@ validateToken();
 // -- Event Handling
 
 var handlers = {
-  'authenticate': function (action) {
-    setToken(event.action);
-  }
+  'authenticate': setToken
 };
 
 var dispatchID = Dispatcher.register(function (event) {

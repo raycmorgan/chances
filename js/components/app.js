@@ -4,6 +4,7 @@
 var React = require('react');
 var _ = require('underscore');
 var Dispatcher = require('../dispatchers/app_dispatcher');
+var logger = require('../logger')('react');
 
 // Stores
 var AuthenticationStore = require('../stores/authentication_store');
@@ -15,32 +16,31 @@ var IssueFilterMenu = require('./issue_filter_menu');
 var IssueList = require('./issue_list');
 
 // Constants
-var WATCH_STORES = [AuthenticationStore, IssueStore];
+var WATCH_STORES = [AuthenticationStore];
+
+function currentState() {
+  return {
+    token: AuthenticationStore.getToken(),
+    isValidatingToken: AuthenticationStore.isValidatingToken(),
+    isTokenValid: AuthenticationStore.isTokenValid(),
+  };
+}
 
 module.exports = React.createClass({
   getInitialState: function () {
-    return this.currentState();
+    return currentState();
   },
 
-  refreshState: function () {
-    this.setState(this.currentState());
-  },
-
-  currentState: function () {
-    return {
-      token: AuthenticationStore.getToken(),
-      isValidatingToken: AuthenticationStore.isValidatingToken(),
-      isTokenValid: AuthenticationStore.isTokenValid(),
-      issues: IssueStore.getIssues()
-    };
+  watchedStoreDidUpdate: function () {
+    this.setState(currentState());
   },
 
   componentDidMount: function () {
-    _.each(WATCH_STORES, (store) => store.addChangeListener(this.refreshState));
+    _.each(WATCH_STORES, (store) => store.addChangeListener(this.watchedStoreDidUpdate));
   },
 
   componentWillUnmount: function () {
-    _.each(WATCH_STORES, (store) => store.removeChangeListener(this.refreshState));
+    _.each(WATCH_STORES, (store) => store.removeChangeListener(this.watchedStoreDidUpdate));
   },
 
   handleSignOut: function (e) {
@@ -49,30 +49,49 @@ module.exports = React.createClass({
   },
 
   render: function () {
+    logger.info('Rendering <App />');
+
     if (this.state.token) {
       if (this.state.isValidatingToken) {
-        return <div>
-          <h3>Validating token…</h3>
-        </div>;
+        return this.renderValidatingToken();
       } else {
         if (this.state.isTokenValid) {
-          return <div>
-            <IssueFilterMenu />
-            <IssueList issues={this.state.issues} />
-            <p><a href="" onClick={this.handleSignOut}>Sign out of chances</a></p>
-          </div>;
+          return this.renderIssues();
         } else {
-          return <div>
-            <h3>Token is invalid. Please sign out and reauth to continue.</h3>
-            <p><a href="" onClick={this.handleSignOut}>Sign out of chances</a></p>
-          </div>;
+          return this.renderInvalidToken();
         }
       }
     } else {
-      return <div>
-        <h3 className="ch-error">Chances needs to authenticate before it can be used.</h3>
-        <Auth />
-      </div>;
+      return this.renderAuth();
     }
+  },
+
+  renderAuth: function () {
+    return <div>
+      <h3 className="ch-error">Chances needs to authenticate before it can be used.</h3>
+      <Auth />
+    </div>;
+  },
+
+  renderValidatingToken: function () {
+    return <div>
+      <h3>Validating token…</h3>
+    </div>;
+  },
+
+  renderInvalidToken: function () {
+    return <div>
+      <h3>Token is invalid. Please sign out and reauth to continue.</h3>
+      <p><a href="" onClick={this.handleSignOut}>Sign out of chances</a></p>
+    </div>;
+  },
+
+  renderIssues: function () {
+    return <div className="columns">
+      <IssueFilterMenu />
+      <IssueList />
+
+      <p><a href="" onClick={this.handleSignOut}>Sign out of chances</a></p>
+    </div>;
   }
 });

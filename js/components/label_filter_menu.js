@@ -3,75 +3,65 @@
 
 var React = require('react');
 var _ = require('underscore');
+var logger = require('../logger')('react');
 
 // Stores
 var LabelStore = require('../stores/label_store');
 
 // Components
-var IssueListItem = require('./issue_list_item');
+var LableFilterItem = require('./label_filter_item');
+
+function currentState() {
+  return {
+    labelGroups: LabelStore.getGroupedLabels(),
+    tags: LabelStore.getNonGroupedLabels(),
+    selected: LabelStore.selectedLabels()
+  };
+}
 
 module.exports = React.createClass({
   getInitialState: function () {
-    return {
-      labelGroups: LabelStore.getGroupedLabels(),
-      tags: LabelStore.getNonGroupedLabels()
-    };
+    return currentState();
+  },
+
+  labelStoreDidUpdate: function () {
+    this.setState(currentState());
   },
 
   componentDidMount: function () {
-    LabelStore.addChangeListener(function () {
-      this.setState({
-        labelGroups: LabelStore.getGroupedLabels(),
-        tags: LabelStore.getNonGroupedLabels()
-      });
-    }.bind(this));
+    LabelStore.addChangeListener(this.labelStoreDidUpdate);
   },
 
-  handleLabelClick: function (e) {
-    e.preventDefault();
-    var name = e.target.id;
-    var selected = !LabelStore.isLabelSelected(name);
-
-    if (selected) {
-      LabelStore.selectLabel(name);
-    } else {
-      LabelStore.deselectLabel(name);
-    }
+  componentWillUnmount: function () {
+    LabelStore.removeChangeListener(this.labelStoreDidUpdate);
   },
 
-  renderGroupedLabel: function (label) {
-    var name = _.rest(label.name.split(':')).join(':');
-    var className = LabelStore.isLabelSelected(label.name) ? 'ch-selected' : '';
-    return <li className={className} key={name}><a href="" onClick={this.handleLabelClick} id={label.name}>{name}</a></li>;
+  renderLabel: function (label) {
+    var selected = _.contains(this.state.selected, label.name);
+    return <LableFilterItem label={label} selected={selected} />
   },
 
   renderLabelGroup: function (labels, name) {
     return <div>
       <h5>{name}</h5>
-      <ul className="ch-label-group">
-        {_.map(labels, this.renderGroupedLabel)}
+      <ul className="ch-label-group js-color-label-list filter-list color-label-list small">
+        {_.map(labels, this.renderLabel)}
       </ul>
     </div>;
-  },
-
-  renderTag: function (label) {
-    var className = LabelStore.isLabelSelected(label.name) ? 'ch-selected' : '';
-
-    return <li className={className} key={label.name}>
-      <a href="" onClick={this.handleLabelClick} id={label.name}>{label.name}</a>
-    </li>;
   },
 
   renderTagGroup: function (labels) {
     return <div>
       <h5>Tags</h5>
-      <ul>
-        {_.map(labels, this.renderTag)}
+      <ul className="js-color-label-list filter-list color-label-list small">
+        {_.map(labels, this.renderLabel)}
       </ul>
     </div>;
   },
 
   render: function () {
+    logger.info('Rendering <LabelFilterMenu />');
+
     return <div>
       {_.map(this.state.labelGroups, this.renderLabelGroup)}
       {this.renderTagGroup(this.state.tags)}

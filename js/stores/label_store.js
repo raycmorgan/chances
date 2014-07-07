@@ -41,6 +41,11 @@ module.exports = {
     return labels;
   },
 
+  selectedLabels: function () {
+    var names = _.map(labels, (l) => l.name);
+    return _.filter(names, this.isLabelSelected);
+  },
+
   getGroupedLabels: function () {
     var isGrouped = (l) => l.name.indexOf(':') != -1
 
@@ -55,22 +60,24 @@ module.exports = {
 
   selectLabel: function (name) {
     sessionStore.update('selectedLabels', function (selected) {
-      return selected.concat(name);
-    }, []);
+      selected[name] = true;
+      return selected;
+    }, {});
 
     emitChange();
   },
 
   deselectLabel: function (name) {
     sessionStore.update('selectedLabels', function (selected) {
-      return _.reject(selected, (n) => n == name);
-    }, []);
+      delete selected[name];
+      return selected;
+    }, {});
 
     emitChange();
   },
 
   isLabelSelected: function (name) {
-    return _.contains(sessionStore.fetch('selectedLabels'), name);
+    return sessionStore.fetch('selectedLabels', {})[name] === true;
   },
 };
 

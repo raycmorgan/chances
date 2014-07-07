@@ -5,6 +5,7 @@ var reqwest = require('reqwest');
 var EventEmitter = require('events').EventEmitter;
 var Promise = require('es6-promise').Promise;
 var _ = require('underscore');
+var logger = require('./logger')('http');
 
 function Github(token) {
   if (Github.cached[token]) {
@@ -57,6 +58,7 @@ function Github(token) {
 
       e.cancel = function () {
         cancelled = true;
+        e.emit('cancelled');
         e.emit('end');
       }
 
@@ -103,7 +105,7 @@ function Github(token) {
 Github.cached = {};
 
 function get(url, data, headers) {
-  console.log('HTTP request: GET %s', url, data, headers);
+  logger.info('HTTP request: GET %s', url, data, headers);
 
   return new Promise(function (resolve, reject) {
     var r = reqwest({

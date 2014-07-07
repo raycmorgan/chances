@@ -20,8 +20,6 @@ var defaultFilters = {
 // and only change when labels are selected, etc.
 LabelStore.addChangeListener(emitChange);
 
-sessionStore.update('issues', () => []);
-
 function syncIssues() {
   var issues = [];
 
@@ -31,14 +29,14 @@ function syncIssues() {
                 .stream();
 
   stream.on('data', (issue) => issues.push(issue));
-  stream.on('endChunk', emitChange);
-  stream.on('end', function () {
+  stream.on('endChunk', function () {
     sessionStore.update('issues', function () {
       return issues;
     });
 
     emitChange();
   });
+  stream.on('cancelled', emitChange);
 }
 
 function emitChange() {
@@ -181,6 +179,12 @@ module.exports = {
     return query.filter(issues, currentQuery());
   },
 
+  selectedIssues: function () {
+    var issues = this.getIssues();
+    var ids = _.map(issues, (i) => i.id);
+    return _.filter(ids, this.isIssueSelected);
+  },
+
   //
 
   setIncludePullRequests: function (v) {
@@ -200,8 +204,9 @@ module.exports = {
 
   selectIssue: function (id) {
     sessionStore.update('selected', function (selected) {
-      return selected.concat(id);
-    }, []);
+      selected[id] = true;
+      return selected;
+    }, {});
 
     var issues = sessionStore.fetch('issues', []);
     console.log(_.find(issues, (i) => i.id == id));
@@ -211,13 +216,14 @@ module.exports = {
 
   unselectIssue: function (id) {
     sessionStore.update('selected', function (selected) {
-      return _.reject(selected, (i) => i == id);
-    }, []);
+      delete selected[id];
+      return selected;
+    }, {});
     
     emitChange();
   },
 
   isIssueSelected: function (id) {
-    return _.contains(sessionStore.fetch('selected'), id);
+    return sessionStore.fetch('selected', {})[id] === true;
   }
 };

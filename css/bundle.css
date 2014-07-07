@@ -41,8 +41,6 @@
 
 .ch-menu li {
   list-style-type: none;
-  display: inline-block;
-  margin-right:10px;
 }
 
 .issue-list-item {

@@ -1,3 +1,5 @@
+var logger = require('../logger')('session');
+
 module.exports = function (storeKey) {
   var _cache = null;
 
@@ -12,6 +14,7 @@ module.exports = function (storeKey) {
 
   function setSessionStore(obj) {
     _cache = null; // invalidate cache
+    logger.info('Updating session store %s: ', storeKey, obj);
     sessionStorage[storeKey] = JSON.stringify(obj);
   }
 
