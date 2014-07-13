@@ -8,7 +8,7 @@ var LabelStore = require('./label_store');
 var helpers = require('../helpers');
 var _ = require('underscore');
 var query = require('../query');
-var sessionStore = require('./session_store')('IssueStore.' + helpers.repoTuple());
+var sessionStorage = require('./session_storage')('IssueStorage.' + helpers.repoTuple());
 
 var changeListeners = [];
 
@@ -30,7 +30,7 @@ function syncIssues() {
 
   stream.on('data', (issue) => issues.push(issue));
   stream.on('endChunk', function () {
-    sessionStore.update('issues', function () {
+    sessionStorage.update('issues', function () {
       return issues;
     });
 
@@ -47,7 +47,7 @@ function currentQuery() {
   var q = {
     '$and': []
   };
-  var filters = sessionStore.fetch('filters', defaultFilters);
+  var filters = sessionStorage.fetch('filters', defaultFilters);
 
   if (!filters.includePullRequests) {
     q['pull_request'] = {$exists: false};
@@ -174,7 +174,7 @@ module.exports = {
   },
 
   getIssues: function () {
-    var issues = sessionStore.fetch('issues', []);
+    var issues = sessionStorage.fetch('issues', []);
     // console.log(issues);
     return query.filter(issues, currentQuery());
   },
@@ -188,7 +188,7 @@ module.exports = {
   //
 
   setIncludePullRequests: function (v) {
-    sessionStore.update('filters', function (filters) {
+    sessionStorage.update('filters', function (filters) {
       filters['includePullRequests'] = v;
       return filters;
     }, defaultFilters);
@@ -197,25 +197,25 @@ module.exports = {
   },
 
   includePullRequests: function () {
-    return sessionStore.fetch('filters', defaultFilters)['includePullRequests'];
+    return sessionStorage.fetch('filters', defaultFilters)['includePullRequests'];
   },
 
   //
 
   selectIssue: function (id) {
-    sessionStore.update('selected', function (selected) {
+    sessionStorage.update('selected', function (selected) {
       selected[id] = true;
       return selected;
     }, {});
 
-    var issues = sessionStore.fetch('issues', []);
+    var issues = sessionStorage.fetch('issues', []);
     console.log(_.find(issues, (i) => i.id == id));
 
     emitChange();
   },
 
   unselectIssue: function (id) {
-    sessionStore.update('selected', function (selected) {
+    sessionStorage.update('selected', function (selected) {
       delete selected[id];
       return selected;
     }, {});
@@ -224,6 +224,6 @@ module.exports = {
   },
 
   isIssueSelected: function (id) {
-    return sessionStore.fetch('selected', {})[id] === true;
+    return sessionStorage.fetch('selected', {})[id] === true;
   }
 };

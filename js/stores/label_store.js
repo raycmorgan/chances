@@ -5,7 +5,7 @@ var Github = require('../github');
 var AuthenticationStore = require('./authentication_store');
 var helpers = require('../helpers');
 var _ = require('underscore');
-var sessionStore = require('./session_store')('LabelStore.' + helpers.repoTuple());
+var sessionStorage = require('./session_storage')('LabelStorage.' + helpers.repoTuple());
 
 var labels = [];
 var changeListeners = [];
@@ -63,7 +63,7 @@ module.exports = {
   },
 
   selectLabel: function (name) {
-    sessionStore.update('selectedLabels', function (selected) {
+    sessionStorage.update('selectedLabels', function (selected) {
       selected[name] = true;
       return selected;
     }, {});
@@ -72,7 +72,7 @@ module.exports = {
   },
 
   deselectLabel: function (name) {
-    sessionStore.update('selectedLabels', function (selected) {
+    sessionStorage.update('selectedLabels', function (selected) {
       delete selected[name];
       return selected;
     }, {});
@@ -81,7 +81,7 @@ module.exports = {
   },
 
   isLabelSelected: function (name) {
-    return sessionStore.fetch('selectedLabels', {})[name] === true;
+    return sessionStorage.fetch('selectedLabels', {})[name] === true;
   },
 };
 
