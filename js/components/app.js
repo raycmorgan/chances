@@ -7,7 +7,7 @@ var Dispatcher = require('../dispatchers/app_dispatcher');
 var logger = require('../logger')('react');
 
 // Stores
-var AuthenticationStore = require('../stores/authentication_store');
+var SessionStore = require('../stores/session_store');
 var IssueStore = require('../stores/issue_store');
 
 // Components
@@ -16,13 +16,13 @@ var IssueFilterMenu = require('./issue_filter_menu');
 var IssueList = require('./issue_list');
 
 // Constants
-var WATCH_STORES = [AuthenticationStore];
+var WATCH_STORES = [SessionStore];
 
 function currentState() {
   return {
-    token: AuthenticationStore.getToken(),
-    isValidatingToken: AuthenticationStore.isValidatingToken(),
-    isTokenValid: AuthenticationStore.isTokenValid(),
+    token: SessionStore.getToken(),
+    isValidatingToken: SessionStore.isValidatingToken(),
+    isTokenValid: SessionStore.isTokenValid(),
   };
 }
 
@@ -45,7 +45,7 @@ module.exports = React.createClass({
 
   handleSignOut: function (e) {
     e.preventDefault();
-    Dispatcher.handleViewAction('authenticate', null);
+    Dispatcher.handleViewAction('session.delete');
   },
 
   render: function () {

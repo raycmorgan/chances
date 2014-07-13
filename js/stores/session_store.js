@@ -47,7 +47,8 @@ validateToken();
 // -- Event Handling
 
 var handlers = {
-  'authenticate': setToken
+  'session.create': setToken,
+  'session.delete': deleteToken,
 };
 
 var dispatchID = Dispatcher.register(function (event) {
@@ -58,16 +59,22 @@ var dispatchID = Dispatcher.register(function (event) {
   return true;
 });
 
-function setToken(newToken) {
-  token = newToken;
+function setToken(data) {
+  token = data.token;
 
   if (token) {
     localStorage['ch-token'] = token;
     validateToken();
-  } else {
-    validToken = false;
-    delete localStorage['ch-token'];
   }
+
+  emitChange();
+  return true;
+}
+
+function deleteToken() {
+  token = null;
+  validToken = false;
+  delete localStorage['ch-token'];
 
   emitChange();
   return true;

@@ -26,4 +26,7 @@ var AppDispatcher = merge(Dispatcher.prototype, {
 
 });
 
+AppDispatcher.handleViewAction = AppDispatcher.handleViewAction.bind(AppDispatcher);
+AppDispatcher.handleStoreAction = AppDispatcher.handleStoreAction.bind(AppDispatcher);
+
 module.exports = AppDispatcher;

@@ -3,7 +3,7 @@
 
 var Dispatcher = require('../dispatchers/app_dispatcher');
 var Github = require('../github');
-var AuthenticationStore = require('./authentication_store');
+var SessionStore = require('./session_store');
 var LabelStore = require('./label_store');
 var helpers = require('../helpers');
 var _ = require('underscore');
@@ -23,7 +23,7 @@ LabelStore.addChangeListener(emitChange);
 function syncIssues() {
   var issues = [];
 
-  var stream = Github(AuthenticationStore.getToken())
+  var stream = Github(SessionStore.getToken())
                 .repos(helpers.repoTuple())
                 .issues
                 .stream();
@@ -146,9 +146,9 @@ function remoteToLocal(issue) {
 var handlers = {
   'token.valid': function (action) {
     Dispatcher.waitFor([
-      AuthenticationStore.getDispatchID()
+      SessionStore.getDispatchID()
     ], function () {
-      if (AuthenticationStore.isTokenValid()) {
+      if (SessionStore.isTokenValid()) {
         syncIssues();
       }
     });

@@ -2,7 +2,7 @@
 'use strict';
 
 var Github = require('../github');
-var AuthenticationStore = require('./authentication_store');
+var SessionStore = require('./session_store');
 var helpers = require('../helpers');
 var _ = require('underscore');
 var sessionStorage = require('./session_storage')('LabelStorage.' + helpers.repoTuple());
@@ -10,8 +10,8 @@ var sessionStorage = require('./session_storage')('LabelStorage.' + helpers.repo
 var labels = [];
 var changeListeners = [];
 
-AuthenticationStore.addChangeListener(function () {
-  if (AuthenticationStore.isTokenValid()) {
+SessionStore.addChangeListener(function () {
+  if (SessionStore.isTokenValid()) {
     sync();
   }
 });
@@ -19,7 +19,7 @@ AuthenticationStore.addChangeListener(function () {
 function sync() {
   var syncLabels = []
 
-  var stream = Github(AuthenticationStore.getToken())
+  var stream = Github(SessionStore.getToken())
                 .repos(helpers.repoTuple())
                 .labels
                 .stream();

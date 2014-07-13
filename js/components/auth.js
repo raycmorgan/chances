@@ -5,9 +5,6 @@ var React = require('react');
 var _ = require('underscore');
 var Dispatcher = require('../dispatchers/app_dispatcher');
 
-// Stores
-var AuthenticationStore = require('../stores/authentication_store');
-
 module.exports = React.createClass({
   getInitialState: function () {
     return {value: ''};
@@ -20,7 +17,7 @@ module.exports = React.createClass({
 
   onSubmit: function (e) {
     e.preventDefault();
-    Dispatcher.handleViewAction('authenticate', this.state.value);
+    Dispatcher.handleViewAction('session.create', {token: this.state.value});
   },
 
   render: function () {
