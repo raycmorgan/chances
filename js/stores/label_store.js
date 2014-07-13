@@ -17,14 +17,18 @@ AuthenticationStore.addChangeListener(function () {
 });
 
 function sync() {
+  var syncLabels = []
+
   var stream = Github(AuthenticationStore.getToken())
                 .repos(helpers.repoTuple())
                 .labels
                 .stream();
 
-  stream.on('data', (label) => labels.push(label));
-  stream.on('endChunk', emitChange);
-  stream.on('end', emitChange);
+  stream.on('data', (label) => syncLabels.push(label));
+  stream.on('end', function () {
+    labels = syncLabels;
+    emitChange();
+  });
 }
 
 function emitChange() {
