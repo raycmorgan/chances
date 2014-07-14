@@ -15,6 +15,8 @@ function currentState() {
   return {
     issues: IssueStore.getIssues(),
     selected: IssueStore.selectedIssues(),
+    pages: IssueStore.pages(),
+    currentPage: IssueStore.currentPage(),
   };
 }
 
@@ -39,10 +41,16 @@ module.exports = React.createClass({
     var nextIds = _.map(nextState.issues, (i) => i.id);
     var currIds = _.map(this.state.issues, (i) => i.id);
 
-    return !(
-      arrayEqual(nextIds, currIds) &&
-      arrayEqual(nextState.selected, this.state.selected)
+    return (
+      !arrayEqual(nextIds, currIds) ||
+      !arrayEqual(nextState.selected, this.state.selected) ||
+      nextState.pages.length != this.state.pages.length
     );
+  },
+
+  handlePageClick: function (page, e) {
+    e.preventDefault();
+    IssueStore.selectPage(page);
   },
 
   renderListItem: function (issue) {
@@ -50,12 +58,29 @@ module.exports = React.createClass({
                      selected={_.contains(this.state.selected, issue.id)} />
   },
 
+  renderPage: function (page) {
+    if (page == this.state.currentPage) {
+      return <span key={page} className="current">{page}</span>;
+    } else {
+      var handler = this.handlePageClick.bind(this, page);
+      return <a key={page} onClick={handler}>{page}</a>;
+    }
+  },
+
   render: function () {
     logger.info('Rendering <IssueList />');
 
-    return <ul className="list-group issue-list-group column three-fourths">
-      {_.map(this.state.issues, this.renderListItem)}
-    </ul>;
+    return <div className="column three-fourths">
+      <ul className="list-group issue-list-group">
+        {_.map(this.state.issues, this.renderListItem)}
+      </ul>
+
+      <div className="right">
+        <div className="pagination">
+          {_.map(this.state.pages, this.renderPage)}
+        </div>
+      </div>
+    </div>;
   }
 });
 

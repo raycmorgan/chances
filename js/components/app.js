@@ -52,14 +52,10 @@ module.exports = React.createClass({
     logger.info('Rendering <App />');
 
     if (this.state.token) {
-      if (this.state.isValidatingToken) {
-        return this.renderValidatingToken();
+      if (this.state.isTokenValid) {
+        return this.renderIssues();
       } else {
-        if (this.state.isTokenValid) {
-          return this.renderIssues();
-        } else {
-          return this.renderInvalidToken();
-        }
+        return this.renderInvalidToken();
       }
     } else {
       return this.renderAuth();

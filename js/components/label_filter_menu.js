@@ -3,6 +3,7 @@
 
 var React = require('react');
 var _ = require('underscore');
+var _s = require('underscore.string');
 var logger = require('../logger')('react');
 
 // Stores
@@ -43,7 +44,7 @@ module.exports = React.createClass({
 
   renderLabelGroup: function (labels, name) {
     return <div>
-      <h5>{name}</h5>
+      <h5>{_s.capitalize(name)}</h5>
       <ul className="ch-label-group js-color-label-list filter-list color-label-list small">
         {_.map(labels, this.renderLabel)}
       </ul>

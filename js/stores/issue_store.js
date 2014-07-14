@@ -1,6 +1,8 @@
 /** @jsx React.DOM */
 'use strict';
 
+var PAGE_SIZE = 30;
+
 var Dispatcher = require('../dispatchers/app_dispatcher');
 var Github = require('../github');
 var SessionStore = require('./session_store');
@@ -175,14 +177,37 @@ module.exports = {
 
   getIssues: function () {
     var issues = sessionStorage.fetch('issues', []);
-    // console.log(issues);
-    return query.filter(issues, currentQuery());
+    var page = sessionStorage.fetch('page', 1);
+
+    issues = query.filter(issues, currentQuery());
+    issues = issues.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    return issues;
   },
 
   selectedIssues: function () {
     var issues = this.getIssues();
     var ids = _.map(issues, (i) => i.id);
     return _.filter(ids, this.isIssueSelected);
+  },
+
+  pages: function () {
+    var issues = sessionStorage.fetch('issues', []);
+    issues = query.filter(issues, currentQuery());
+
+    return _.range(1, Math.ceil(issues.length / PAGE_SIZE));
+  },
+
+  currentPage: function () {
+    return sessionStorage.fetch('page', 1);
+  },
+
+  selectPage: function (page) {
+    sessionStorage.update('page', function () {
+      return page;
+    }, 1);
+
+    emitChange();
   },
 
   //

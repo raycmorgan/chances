@@ -7,7 +7,6 @@ var helpers = require('../helpers');
 var _ = require('underscore');
 var sessionStorage = require('./session_storage')('LabelStorage.' + helpers.repoTuple());
 
-var labels = [];
 var changeListeners = [];
 
 SessionStore.addChangeListener(function () {
@@ -17,16 +16,19 @@ SessionStore.addChangeListener(function () {
 });
 
 function sync() {
-  var syncLabels = []
+  var labels = [];
 
   var stream = Github(SessionStore.getToken())
                 .repos(helpers.repoTuple())
                 .labels
                 .stream();
 
-  stream.on('data', (label) => syncLabels.push(label));
+  stream.on('data', (label) => labels.push(label));
   stream.on('end', function () {
-    labels = syncLabels;
+    sessionStorage.update('labels', function () {
+      return labels;
+    });
+
     emitChange();
   });
 }
@@ -42,15 +44,17 @@ module.exports = {
   },
 
   getLabels: function () {
-    return labels;
+    return sessionStorage.fetch('labels', []);
   },
 
   selectedLabels: function () {
+    var labels = sessionStorage.fetch('labels', []);
     var names = _.map(labels, (l) => l.name);
     return _.filter(names, this.isLabelSelected);
   },
 
   getGroupedLabels: function () {
+    var labels = sessionStorage.fetch('labels', []);
     var isGrouped = (l) => l.name.indexOf(':') != -1
 
     return _.groupBy(_.filter(labels, isGrouped), function (l) {
@@ -59,6 +63,7 @@ module.exports = {
   },
 
   getNonGroupedLabels: function () {
+    var labels = sessionStorage.fetch('labels', []);
     return _.filter(labels, (l) => l.name.indexOf(':') == -1);
   },
 

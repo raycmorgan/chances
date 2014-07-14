@@ -1,14 +1,14 @@
 /** @jsx */
 'use strict';
 
-var React = require('react');
 var _ = require('underscore');
 var Github = require('../github');
 var Dispatcher = require('../dispatchers/app_dispatcher');
+var Promise = require('es6-promise').Promise;
+var reqwest = require('reqwest');
 
 // -- Private store variables
 
-var token = localStorage['ch-token'];
 var validToken = true;
 var validatingToken = false;
 var changeListeners = [];
@@ -22,22 +22,48 @@ function emitChange() {
 function validateToken() {
   validatingToken = true;
 
+  if (localStorage['ch-token']) {
+    var apiRequest = Github(localStorage['ch-token']).user.get();
+  } else {
+    var apiRequest = new Promise(function (resolve) { resolve({}); });
+  }
+
+  var authPageReq = get('https://github.com/settings/profile');
+
+  Promise
+    .all([authPageReq, apiRequest])
+    .then(valid(true), valid(false));
+
   function valid(isValid) {
-    return function () {
-      validToken = isValid;
+    return function (result) {
+      var currentUserId = localStorage['ch-userId'];
+
+      validToken = isValid && (!currentUserId || currentUserId == result[1].id);
       validatingToken = false;
 
+      if (validToken) {
+        localStorage['ch-username'] = result[1].login;
+        localStorage['ch-userId'] = result[1].id;
+      } else {
+        // If token is not valid or the userId does not match,
+        // we need to kill the token so it doesn't stick around
+        // in localStorage!
+
+        console.info('Clearing chances authenticated data.');
+        delete localStorage['ch-token'];
+        delete localStorage['ch-username'];
+        delete localStorage['ch-userId'];
+
+        // TODO clear *ALL* local/session data
+      }
+
       Dispatcher.handleStoreAction('token.valid', {
-        isValid: isValid
+        isValid: validToken
       });
 
       emitChange();
     }
   }
-
-  Github(token)
-    .user.get()
-    .then(valid(true), valid(false));
 }
 
 // -- Setup
@@ -60,10 +86,8 @@ var dispatchID = Dispatcher.register(function (event) {
 });
 
 function setToken(data) {
-  token = data.token;
-
-  if (token) {
-    localStorage['ch-token'] = token;
+  if (data.token) {
+    localStorage['ch-token'] = data.token;
     validateToken();
   }
 
@@ -72,7 +96,6 @@ function setToken(data) {
 }
 
 function deleteToken() {
-  token = null;
   validToken = false;
   delete localStorage['ch-token'];
 
@@ -89,7 +112,24 @@ module.exports = {
   },
 
   getDispatchID: () => dispatchID,
-  getToken: () => token,
+  getToken: () => localStorage['ch-token'],
   isValidatingToken: () => validatingToken,
   isTokenValid: () => validToken
+}
+
+
+function get(url, data, headers) {
+  // logger.info('HTTP request: GET %s', url, data, headers);
+
+  return new Promise(function (resolve, reject) {
+    var r = reqwest({
+      url: url,
+      method: 'get',
+      type: 'html',
+      headers: headers || {},
+      data: data || {},
+      error: reject,
+      success: resolve
+    });
+  });
 }

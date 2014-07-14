@@ -64,11 +64,17 @@ module.exports = React.createClass({
              checked={this.props.selected}
              onChange={this.handleSelect} />
 
+      <span className="list-group-item-number">#{issue.number}</span>
+
       <h4 className="list-group-item-name">
         <span className={iconClass}></span>
         <a href={issue['html_url']}>{issue.title}</a>
         <span className="labels">{_.map(issue.labels, this.renderLabel)}</span>
       </h4>
+
+      <ul className="list-group-item-meta">
+        <li>Opened by <a href={issue.user.html_url}>{issue.user.login}</a></li>
+      </ul>
     </li>;
 
     // <div className="three-fourths" dangerouslySetInnerHTML={{__html: markdown.toHTML(issue.body)}} />

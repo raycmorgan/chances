@@ -11,9 +11,9 @@
 
   "content_scripts": [
     {
-      "matches": ["https://github.com/*/*/issues*"],
+      "matches": ["https://github.com/*", "http://github.com/*"],
       "css": ["css/bundle.css"],
-      "js": ["js/bundle.js"]
+      "js": ["js/oauth.js", "js/bundle.js"]
     }
   ],
 
