@@ -20,6 +20,6 @@ if (issueList) {
 
   container.id = 'ch-menu';
   issueList.parentNode.insertBefore(container, issueList);
-
+  
   React.renderComponent(<App />, container);
 }

@@ -14,6 +14,14 @@ var sessionStorage = require('./session_storage')('IssueStorage.' + helpers.repo
 
 var changeListeners = [];
 
+var openDatabase = require('../database/issue').open;
+var IssueCollection = require('../database/issue').IssueCollection;
+
+openDatabase().then(() => console.log('db open!'), (e) => console.error(e));
+
+var _issues = [];
+loadIssues((err) => err ? console.error(err) : emitChange());
+
 var defaultFilters = {
   includePullRequests: false
 };
@@ -23,22 +31,48 @@ var defaultFilters = {
 LabelStore.addChangeListener(emitChange);
 
 function syncIssues() {
-  var issues = [];
+  var opts = {order: ['updated_at', 'desc'], index: 'updated_at'};
+  IssueCollection.findOne({}, opts, (err, issue, info) => {
+    if (err) { console.error(err); }
 
-  var stream = Github(SessionStore.getToken())
+    var query = {}
+    if (issue) {
+      // Check from updates since the second after the last update seen.
+      var lastUpdated = new Date(issue['updated_at']).getTime();
+      query.since = new Date(lastUpdated + 1000).toISOString().replace('.000', '');
+    }
+
+    var stream = Github(SessionStore.getToken())
                 .repos(helpers.repoTuple())
                 .issues
-                .stream();
+                .stream(query);
 
-  stream.on('data', (issue) => issues.push(issue));
-  stream.on('endChunk', function () {
-    sessionStorage.update('issues', function () {
-      return issues;
+    var syncedCount = 0;
+
+    stream.on('data', (issue) => {
+      syncedCount++;
+      IssueCollection.insert(issue, (err) => {
+        err ? console.error(err) : console.log('Saved issue')
+      });
     });
 
-    emitChange();
+    stream.on('endChunk', function () {
+      console.info('syncedCount', syncedCount);
+      loadIssues((err) => err ? console.error(err) : emitChange());
+    });
+
+    stream.on('cancelled', emitChange);
   });
-  stream.on('cancelled', emitChange);
+}
+
+function loadIssues(callback) {
+  var opts = {index: 'updated_at', order: ['updated_at', 'desc']};
+  IssueCollection.find({}, opts, function (err, issues, info) {
+    if (err) return callback(err);
+    _issues = issues;
+    console.log('Fetch issues info:', info);
+    callback();
+  });
 }
 
 function emitChange() {
@@ -176,7 +210,7 @@ module.exports = {
   },
 
   getIssues: function () {
-    var issues = sessionStorage.fetch('issues', []);
+    var issues = _issues;
     var page = sessionStorage.fetch('page', 1);
 
     issues = query.filter(issues, currentQuery());
@@ -192,7 +226,7 @@ module.exports = {
   },
 
   pages: function () {
-    var issues = sessionStorage.fetch('issues', []);
+    var issues = _issues;
     issues = query.filter(issues, currentQuery());
 
     return _.range(1, Math.ceil(issues.length / PAGE_SIZE));
@@ -233,7 +267,7 @@ module.exports = {
       return selected;
     }, {});
 
-    var issues = sessionStorage.fetch('issues', []);
+    var issues = _issues;
     console.log(_.find(issues, (i) => i.id == id));
 
     emitChange();
